@@ -609,9 +609,20 @@ class FunctionLibrary:
             "average_amount": total_amount / total_count if total_count > 0 else 0        }
         return {"summary": summary}
     
-    def send_email(self, content: str, recipient: str, subject: str = "Automated Report") -> Dict[str, str]:
+    def send_email(self, content: Any, recipient: str, subject: str = "Automated Report") -> Dict[str, str]:
         """Send an email using SMTP configuration."""
         try:
+            # Convert content to string if it's not already
+            if isinstance(content, dict):
+                # Format dictionary content nicely
+                content_str = self._format_dict_for_email(content)
+            elif isinstance(content, (list, tuple)):
+                # Format list/tuple content
+                content_str = self._format_list_for_email(content)
+            else:
+                # Convert to string
+                content_str = str(content)
+            
             # Get email configuration from environment variables
             smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
             smtp_port = int(os.getenv('SMTP_PORT', '587'))
@@ -624,7 +635,7 @@ class FunctionLibrary:
                 print(f"   From: {email_username or 'system@example.com'}")
                 print(f"   To: {recipient}")
                 print(f"   Subject: {subject}")
-                print(f"   Content: {content}")
+                print(f"   Content: {content_str}")
                 return {
                     "status": "Email sent successfully (mock mode)",
                     "mode": "mock",
@@ -639,7 +650,7 @@ class FunctionLibrary:
             msg['Subject'] = subject
             
             # Add content to email
-            body = content
+            body = content_str
             msg.attach(MIMEText(body, 'plain'))
             
             # Connect to server and send email
@@ -1338,3 +1349,42 @@ class FunctionLibrary:
         """Remove duplicates from a list."""
         unique_items = list(dict.fromkeys(items))  # Preserves order
         return {"unique_items": unique_items}
+
+    # Helper methods for email content formatting
+    def _format_dict_for_email(self, data: Dict) -> str:
+        """Format a dictionary for email content."""
+        try:
+            if not data:
+                return "Empty data"
+            
+            lines = []
+            for key, value in data.items():
+                if isinstance(value, (dict, list)):
+                    # For nested structures, convert to JSON
+                    value_str = json.dumps(value, indent=2, default=str)
+                    lines.append(f"{key}:\n{value_str}")
+                else:
+                    lines.append(f"{key}: {value}")
+            
+            return "\n".join(lines)
+        except Exception as e:
+            return f"Error formatting dictionary: {str(e)}\nRaw data: {str(data)}"
+    
+    def _format_list_for_email(self, data: List) -> str:
+        """Format a list for email content."""
+        try:
+            if not data:
+                return "Empty list"
+            
+            lines = []
+            for i, item in enumerate(data, 1):
+                if isinstance(item, (dict, list)):
+                    # For nested structures, convert to JSON
+                    item_str = json.dumps(item, indent=2, default=str)
+                    lines.append(f"Item {i}:\n{item_str}")
+                else:
+                    lines.append(f"Item {i}: {item}")
+            
+            return "\n".join(lines)
+        except Exception as e:
+            return f"Error formatting list: {str(e)}\nRaw data: {str(data)}"

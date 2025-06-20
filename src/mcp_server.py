@@ -8,9 +8,9 @@ import logging
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from flask import Flask, request, jsonify, render_template, send_from_directory
-from .function_library import FunctionLibrary
-from .ollama_interface import OllamaInterface
-from .execution_engine import ExecutionEngine
+from function_library import FunctionLibrary
+from ollama_interface import OllamaInterface
+from execution_engine import ExecutionEngine
 
 
 # Configure logging

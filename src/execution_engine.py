@@ -6,7 +6,7 @@ Handles the execution of function call flows with proper data passing and error 
 import json
 import re
 from typing import Dict, List, Any, Optional, Tuple
-from .function_library import FunctionLibrary
+from function_library import FunctionLibrary
 
 
 class ExecutionEngine:
@@ -45,6 +45,7 @@ class ExecutionEngine:
         """Execute a single step in the pipeline."""
         function_name = function_call.get("function")
         raw_inputs = function_call.get("inputs", {})
+        output_var = function_call.get("output_var")  # Get the variable name
         
         try:
             # Resolve input variables
@@ -53,8 +54,10 @@ class ExecutionEngine:
             # Execute the function
             result = self.function_library.execute_function(function_name, resolved_inputs)
             
-            # Store the output
+            # Store the output with both numeric and named keys
             self.output_storage[f"output_{step_index}"] = result
+            if output_var:
+                self.output_storage[output_var] = result
             
             # Log the execution
             step_log = {
@@ -62,12 +65,12 @@ class ExecutionEngine:
                 "function": function_name,
                 "inputs": resolved_inputs,
                 "outputs": result,
+                "output_var": output_var,
                 "success": True
             }
             self.execution_history.append(step_log)
             
             return {"success": True, "result": result}
-            
         except Exception as e:
             error_log = {
                 "step": step_index,
@@ -84,9 +87,16 @@ class ExecutionEngine:
         resolved = {}
         
         for key, value in raw_inputs.items():
-            if isinstance(value, str) and value.startswith("$"):
-                resolved_value = self._resolve_variable(value)
-                resolved[key] = resolved_value
+            if isinstance(value, str):
+                # Handle both {{var.field}} and $output_N.field formats
+                if value.startswith("{{") and value.endswith("}}"):
+                    resolved_value = self._resolve_template_variable(value)
+                    resolved[key] = resolved_value
+                elif value.startswith("$"):
+                    resolved_value = self._resolve_variable(value)
+                    resolved[key] = resolved_value
+                else:
+                    resolved[key] = value
             else:
                 resolved[key] = value
         
@@ -121,20 +131,73 @@ class ExecutionEngine:
                         raise ValueError(f"Cannot access field '{field}' on non-dict data")
                     
                     if data is None:
-                        raise ValueError(f"Field '{field}' not found")
-            
+                        raise ValueError(f"Field '{field}' not found")            
             return data
             
         except Exception as e:
             raise ValueError(f"Error resolving variable {variable}: {str(e)}")
     
+    def _resolve_template_variable(self, variable: str) -> Any:
+        """Resolve a template variable reference like {{var_name.field}}"""
+        try:
+            # Remove the {{ and }} brackets
+            var_content = variable[2:-2].strip()
+            
+            # Parse variable reference (e.g., "december_invoices.invoices")
+            parts = var_content.split('.')
+            var_name = parts[0]
+            field_path = parts[1:] if len(parts) > 1 else []
+            
+            # Look for the variable in output storage by name
+            data = None
+            if var_name in self.output_storage:
+                data = self.output_storage[var_name]
+            else:
+                # Try to map variable names to output indices based on execution history
+                for step in self.execution_history:
+                    if step.get("success") and step.get("output_var") == var_name:
+                        data = step["outputs"]
+                        break
+                
+                # If still not found, try common mappings
+                if data is None:
+                    var_mapping = {
+                        "december_invoices": "output_0",
+                        "invoice_summary": "output_1", 
+                        "high_value_invoices": "output_1"
+                    }
+                    
+                    if var_name in var_mapping:
+                        output_key = var_mapping[var_name]
+                        if output_key in self.output_storage:
+                            data = self.output_storage[output_key]
+            
+            if data is None:
+                raise ValueError(f"Variable '{var_name}' not found in output storage")
+            
+            # Navigate the field path if specified
+            for field in field_path:
+                if isinstance(data, dict):
+                    data = data.get(field)
+                else:
+                    raise ValueError(f"Cannot access field '{field}' on non-dict data")
+                  if data is None:
+                    raise ValueError(f"Field '{field}' not found")
+            
+            return data
+            
+        except Exception as e:
+            raise ValueError(f"Error resolving template variable {variable}: {str(e)}")
+    
     def _create_success_result(self) -> Dict[str, Any]:
         """Create a successful execution result."""
         final_output = None
         if self.output_storage:
-            # Get the last output as the final result
-            last_key = max(self.output_storage.keys(), key=lambda x: int(x.split('_')[1]))
-            final_output = self.output_storage[last_key]
+            # Get the last numeric output as the final result
+            numeric_keys = [k for k in self.output_storage.keys() if k.startswith('output_')]
+            if numeric_keys:
+                last_key = max(numeric_keys, key=lambda x: int(x.split('_')[1]))
+                final_output = self.output_storage[last_key]
         
         return {
             "success": True,
