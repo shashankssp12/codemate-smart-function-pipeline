@@ -94,18 +94,29 @@ RULES:
 3. Use variable references like "$output_0", "$output_1" to chain function outputs
 4. The first function's output becomes $output_0, second becomes $output_1, etc.
 5. Be specific with parameter values when possible
-6. For email validation queries, use the validate_email function
-7. For mathematical operations, use the appropriate math function
-8. For string operations, use string manipulation functions
-9. Only use invoice functions when explicitly asked about invoices
-10. If the user doesn't specify an email, use "user@example.com"
+
+CORE FUNCTIONS AVAILABLE:
+- get_invoices(month) - Get invoices for a month
+- summarize_invoices(invoices) - Summarize invoice data
+- send_email(content, recipient, subject) - Send email
+- validate_email(email) - Check if email is valid
+- add_numbers(a, b) - Add two numbers
+- get_current_time() - Get current time
+- generate_random_number(min_val, max_val) - Random number
+- uppercase_string(text) - Convert to uppercase
+- check_prime(number) - Check if number is prime
+- calculate_total(items, field) - Calculate total of field
 
 COMMON QUERY PATTERNS:
 - "is this email valid [email]" → use validate_email function
 - "add/sum [numbers]" → use add_numbers function  
 - "what time is it" → use get_current_time function
-- "download [url]" → use download_file function
-- "summarize [url]" → use web_summarizer function
+- "convert [text] to uppercase" → use uppercase_string function
+- "is [number] prime" → use check_prime function
+- "random number between [min] and [max]" → use generate_random_number function
+- "get invoices for [month]" → use get_invoices function
+- "summarize invoices" → use summarize_invoices function after get_invoices
+- "send email" → use send_email function
 
 EXAMPLE FORMAT:
 [

@@ -53,19 +53,19 @@
                         <i class="fas fa-magic"></i>
                     </div>
                     <h2>Welcome to MCP Smart Function Pipeline!</h2>
-                    <p>I can help you with 59+ different functions including:</p>
+                    <p>I can help you with 10 core functions optimized for practical use:</p>
                     <div class="feature-grid">
                         <div class="feature-item">
+                            <i class="fas fa-file-invoice"></i>
+                            <span>Invoice Management</span>
+                        </div>
+                        <div class="feature-item">
                             <i class="fas fa-envelope-circle-check"></i>
-                            <span>Email Validation</span>
+                            <span>Email Functions</span>
                         </div>
                         <div class="feature-item">
                             <i class="fas fa-calculator"></i>
                             <span>Mathematical Operations</span>
-                        </div>
-                        <div class="feature-item">
-                            <i class="fas fa-globe"></i>
-                            <span>Web Scraping & Downloads</span>
                         </div>
                         <div class="feature-item">
                             <i class="fas fa-text-height"></i>
@@ -73,27 +73,44 @@
                         </div>
                         <div class="feature-item">
                             <i class="fas fa-clock"></i>
-                            <span>Date & Time Functions</span>
+                            <span>Time & Utilities</span>
                         </div>
                         <div class="feature-item">
                             <i class="fas fa-chart-line"></i>
-                            <span>Data Analysis</span>
+                            <span>Data Calculations</span>
                         </div>
                     </div>
                     <div class="sample-queries">
-                        <h3>Try these examples:</h3>
+                        <h3>🚀 Best Tested Prompts:</h3>
                         <div class="query-examples">
                             <button class="example-query" data-query="is this email valid test@example.com">
-                                📧 Validate email address
+                                📧 Validate Email
                             </button>
                             <button class="example-query" data-query="add 25 and 17">
-                                ➕ Add two numbers
+                                ➕ Add Numbers
                             </button>
                             <button class="example-query" data-query="what is the current time">
-                                ⏰ Get current time
+                                ⏰ Current Time
                             </button>
                             <button class="example-query" data-query="generate a random number between 1 and 100">
-                                🎲 Random number
+                                🎲 Random Number
+                            </button>
+                            <button class="example-query" data-query="convert hello world to uppercase">
+                                🔤 Uppercase Text
+                            </button>
+                            <button class="example-query" data-query="is 17 a prime number">
+                                🔢 Check Prime
+                            </button>
+                            <button class="example-query" data-query="get invoices for December">
+                                📋 Get Invoices
+                            </button>
+                            <button class="example-query"
+                                data-query="send email to test@example.com with subject Test Report and content Hello World">
+                                📨 Send Real Email
+                            </button>
+                            <button class="example-query"
+                                data-query="get invoices for December then summarize them and send to manager@company.com">
+                                🔄 Full Pipeline with Real Email
                             </button>
                         </div>
                     </div>
@@ -102,9 +119,8 @@
 
             <!-- Input Area -->
             <div class="input-container">
-                <div class="input-wrapper">
-                    <textarea id="messageInput"
-                        placeholder="Ask me anything... (e.g., 'is this email valid test@example.com' or 'add 5 and 3')"
+                <div class="input-wrapper"> <textarea id="messageInput"
+                        placeholder="Ask me anything... (e.g., 'is test@example.com a valid email' or 'add 5 and 3' or 'get invoices for March')"
                         rows="1"></textarea>
                     <div class="input-actions">
                         <button id="sendButton" class="send-button" disabled>
@@ -113,8 +129,8 @@
                     </div>
                 </div>
                 <div class="input-footer">
-                    <small>💡 Tip: Try mathematical operations, email validation, string processing, or web
-                        functions!</small>
+                    <small>💡 Tip: Try invoice management, email validation, math operations, or text
+                        processing!</small>
                 </div>
             </div>
         </div>

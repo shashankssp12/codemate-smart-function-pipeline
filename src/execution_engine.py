@@ -174,14 +174,13 @@ class ExecutionEngine:
             
             if data is None:
                 raise ValueError(f"Variable '{var_name}' not found in output storage")
-            
-            # Navigate the field path if specified
+              # Navigate the field path if specified
             for field in field_path:
                 if isinstance(data, dict):
                     data = data.get(field)
                 else:
                     raise ValueError(f"Cannot access field '{field}' on non-dict data")
-                  if data is None:
+                if data is None:
                     raise ValueError(f"Field '{field}' not found")
             
             return data

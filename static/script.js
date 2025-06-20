@@ -28,10 +28,11 @@ function initializeApp() {
     this.style.height = "auto";
     this.style.height = Math.min(this.scrollHeight, 120) + "px";
   });
-
   // Enable/disable send button based on input
   messageInput.addEventListener("input", function () {
-    sendButton.disabled = this.value.trim() === "" || isLoading;
+    if (!isLoading) {
+      sendButton.disabled = this.value.trim() === "";
+    }
   });
 
   // Handle Enter key
@@ -96,86 +97,16 @@ async function loadFunctions() {
 }
 
 function displayFunctions(functionsData) {
-  // Group functions by category
+  // Simplified categories for our 10 core functions
   const categories = {
-    Mathematical: [
-      "add_numbers",
-      "subtract_numbers",
-      "multiply_numbers",
-      "divide_numbers",
-      "power",
-      "square_root",
-      "factorial",
-      "logarithm",
-      "sine",
-      "cosine",
-      "tangent",
-      "absolute_value",
-    ],
-    "String Processing": [
-      "uppercase_string",
-      "lowercase_string",
-      "reverse_string",
-      "count_words",
-      "remove_spaces",
-      "replace_text",
-      "count_characters",
-    ],
-    "List Operations": [
-      "sort_list",
-      "find_max",
-      "find_min",
-      "calculate_average",
-      "calculate_median",
-      "sum_list",
-      "remove_duplicates",
-    ],
-    "Web Functions": [
-      "web_summarizer",
-      "download_file",
-      "check_url_status",
-      "extract_domain",
-    ],
-    "Date & Time": [
-      "get_current_time",
-      "add_days",
-      "date_difference",
-      "format_date",
-    ],
+    "Invoice Management": ["get_invoices", "summarize_invoices"],
+    Communication: ["send_email", "validate_email"],
+    Mathematical: ["add_numbers", "check_prime"],
     Utility: [
+      "get_current_time",
       "generate_random_number",
-      "generate_uuid",
-      "hash_string",
-      "encode_base64",
-      "decode_base64",
-      "validate_email",
-    ],
-    "Data Processing": [
+      "uppercase_string",
       "calculate_total",
-      "group_by_field",
-      "filter_by_date_range",
-      "save_to_file",
-      "read_from_file",
-    ],
-    "Advanced Math": [
-      "calculate_percentage",
-      "round_number",
-      "check_prime",
-      "fibonacci_sequence",
-      "greatest_common_divisor",
-      "least_common_multiple",
-      "palindrome_check",
-    ],
-    Conversion: [
-      "convert_currency",
-      "celsius_to_fahrenheit",
-      "fahrenheit_to_celsius",
-    ],
-    Business: [
-      "get_invoices",
-      "filter_invoices_by_amount",
-      "summarize_invoices",
-      "send_email",
     ],
   };
 
@@ -315,15 +246,20 @@ function showFunctionDetails(functionName) {
 
 function getExampleUsage(functionName) {
   const examples = {
-    validate_email: '"is this email valid test@example.com"',
-    add_numbers: '"add 15 and 25"',
-    get_current_time: '"what is the current time"',
-    web_summarizer: '"summarize the content from https://example.com"',
-    download_file: '"download file from https://example.com/file.pdf"',
-    uppercase_string: '"convert hello world to uppercase"',
-    check_prime: '"is 17 a prime number"',
-    fibonacci_sequence: '"generate first 10 fibonacci numbers"',
+    get_invoices: '"get invoices for March" or "retrieve December invoices"',
+    summarize_invoices: '"summarize the invoices" (use after getting invoices)',
+    send_email:
+      '"send an email to john@company.com with subject Monthly Report"',
+    validate_email:
+      '"is this email valid test@example.com" or "check email user@domain.com"',
+    add_numbers: '"add 15 and 25" or "what is 45 plus 78"',
+    get_current_time:
+      '"what is the current time" or "show me the current date and time"',
     generate_random_number: '"generate a random number between 1 and 100"',
+    uppercase_string: '"convert hello world to uppercase"',
+    check_prime: '"is 17 a prime number" or "check if 29 is prime"',
+    calculate_total:
+      '"calculate total amount from invoices" (use with invoice data)',
   };
 
   return examples[functionName] || `"Use the ${functionName} function"`;
@@ -349,6 +285,9 @@ async function sendMessage() {
   messageInput.style.height = "auto";
   sendButton.disabled = true;
   isLoading = true;
+  // Update send button to show loading state
+  sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  sendButton.classList.add("loading");
 
   // Add loading message
   const loadingId = addLoadingMessage();
@@ -376,6 +315,10 @@ async function sendMessage() {
     console.error("Error:", error);
   } finally {
     isLoading = false;
+    // Reset send button
+    sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+    sendButton.classList.remove("loading");
+    sendButton.disabled = false;
   }
 }
 
@@ -508,10 +451,23 @@ function addLoadingMessage() {
 
   const contentDiv = document.createElement("div");
   contentDiv.className = "message-content";
+
+  // Random loading messages for variety
+  const loadingMessages = [
+    "🤖 Processing your request",
+    "🔍 Analyzing your query",
+    "⚡ Running functions",
+    "🧠 Thinking",
+    "🔧 Working on it",
+  ];
+
+  const randomMessage =
+    loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
+
   contentDiv.innerHTML = `
         <div class="loading-message">
             <i class="fas fa-spinner fa-spin"></i>
-            <span>Processing your request...</span>
+            <span>${randomMessage}</span>
         </div>
     `;
 
