@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Smart Function Pipeline - AI Chat</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-robot"></i> MCP Functions</h2>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+
+            <div class="functions-list" id="functionsList">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> Loading functions...
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="main-content" id="mainContent">
+            <!-- Header -->
+            <div class="chat-header">
+                <div class="header-left">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1><i class="fas fa-brain"></i> AI Function Pipeline</h1>
+                </div>
+                <div class="header-right">
+                    <div class="status-indicator" id="statusIndicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Connecting...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Messages -->
+            <div class="chat-container" id="chatContainer">
+                <div class="welcome-message">
+                    <div class="welcome-icon">
+                        <i class="fas fa-magic"></i>
+                    </div>
+                    <h2>Welcome to MCP Smart Function Pipeline!</h2>
+                    <p>I can help you with 59+ different functions including:</p>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i class="fas fa-envelope-circle-check"></i>
+                            <span>Email Validation</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-calculator"></i>
+                            <span>Mathematical Operations</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-globe"></i>
+                            <span>Web Scraping & Downloads</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-text-height"></i>
+                            <span>String Processing</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-clock"></i>
+                            <span>Date & Time Functions</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Data Analysis</span>
+                        </div>
+                    </div>
+                    <div class="sample-queries">
+                        <h3>Try these examples:</h3>
+                        <div class="query-examples">
+                            <button class="example-query" data-query="is this email valid test@example.com">
+                                📧 Validate email address
+                            </button>
+                            <button class="example-query" data-query="add 25 and 17">
+                                ➕ Add two numbers
+                            </button>
+                            <button class="example-query" data-query="what is the current time">
+                                ⏰ Get current time
+                            </button>
+                            <button class="example-query" data-query="generate a random number between 1 and 100">
+                                🎲 Random number
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea id="messageInput"
+                        placeholder="Ask me anything... (e.g., 'is this email valid test@example.com' or 'add 5 and 3')"
+                        rows="1"></textarea>
+                    <div class="input-actions">
+                        <button id="sendButton" class="send-button" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="input-footer">
+                    <small>💡 Tip: Try mathematical operations, email validation, string processing, or web
+                        functions!</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Function Detail Modal -->
+    <div class="modal" id="functionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Function Details</h3>
+                <button class="modal-close" id="modalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Function details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="static/script.js"></script>
+</body>
+
+</html>

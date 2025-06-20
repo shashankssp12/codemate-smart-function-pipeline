@@ -94,7 +94,18 @@ RULES:
 3. Use variable references like "$output_0", "$output_1" to chain function outputs
 4. The first function's output becomes $output_0, second becomes $output_1, etc.
 5. Be specific with parameter values when possible
-6. If the user doesn't specify an email, use "user@example.com"
+6. For email validation queries, use the validate_email function
+7. For mathematical operations, use the appropriate math function
+8. For string operations, use string manipulation functions
+9. Only use invoice functions when explicitly asked about invoices
+10. If the user doesn't specify an email, use "user@example.com"
+
+COMMON QUERY PATTERNS:
+- "is this email valid [email]" → use validate_email function
+- "add/sum [numbers]" → use add_numbers function  
+- "what time is it" → use get_current_time function
+- "download [url]" → use download_file function
+- "summarize [url]" → use web_summarizer function
 
 EXAMPLE FORMAT:
 [
@@ -127,27 +138,92 @@ RESPONSE (JSON only):
         except json.JSONDecodeError as e:
             print(f"JSON parsing error: {e}")
             print(f"Response text: {response_text}")
-        
-        # Fallback: try to extract function names and create basic calls
+          # Fallback: try to extract function names and create basic calls
         return self._fallback_extraction(response_text)
     
     def _fallback_extraction(self, response_text: str) -> List[Dict[str, Any]]:
         """Fallback method to extract function calls if JSON parsing fails."""
-        # This is a simple fallback - in production you might want more sophisticated parsing
         fallback_calls = []
         
-        # Look for common patterns
-        if "invoice" in response_text.lower():
+        # Convert to lowercase for case-insensitive matching
+        lower_text = response_text.lower()
+        
+        # Email validation check
+        if "valid" in lower_text and "email" in lower_text:
+            # Extract email from the query if possible
+            import re
+            email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+            emails = re.findall(email_pattern, response_text)
+            email = emails[0] if emails else "test@example.com"
+            fallback_calls.append({"function": "validate_email", "inputs": {"email": email}})
+            return fallback_calls
+        
+        # Mathematical operations
+        if any(word in lower_text for word in ["add", "plus", "+", "sum"]):
+            fallback_calls.append({"function": "add_numbers", "inputs": {"a": 5, "b": 3}})
+            return fallback_calls
+        
+        if any(word in lower_text for word in ["subtract", "minus", "-"]):
+            fallback_calls.append({"function": "subtract_numbers", "inputs": {"a": 10, "b": 3}})
+            return fallback_calls
+        
+        if any(word in lower_text for word in ["multiply", "times", "*"]):
+            fallback_calls.append({"function": "multiply_numbers", "inputs": {"a": 4, "b": 5}})
+            return fallback_calls
+        
+        if any(word in lower_text for word in ["divide", "÷", "/"]):
+            fallback_calls.append({"function": "divide_numbers", "inputs": {"a": 20, "b": 4}})
+            return fallback_calls
+        
+        # String operations
+        if "uppercase" in lower_text or "upper" in lower_text:
+            fallback_calls.append({"function": "uppercase_string", "inputs": {"text": "hello world"}})
+            return fallback_calls
+        
+        if "lowercase" in lower_text or "lower" in lower_text:
+            fallback_calls.append({"function": "lowercase_string", "inputs": {"text": "HELLO WORLD"}})
+            return fallback_calls
+        
+        if "reverse" in lower_text:
+            fallback_calls.append({"function": "reverse_string", "inputs": {"text": "hello"}})
+            return fallback_calls
+        
+        # Web operations
+        if "download" in lower_text and "url" in lower_text:
+            fallback_calls.append({"function": "download_file", "inputs": {"url": "https://example.com/file.txt", "filename": "downloaded_file.txt"}})
+            return fallback_calls
+        
+        if "summarize" in lower_text and "web" in lower_text:
+            fallback_calls.append({"function": "web_summarizer", "inputs": {"url": "https://example.com"}})
+            return fallback_calls
+        
+        # Time operations
+        if "current time" in lower_text or "time now" in lower_text:
+            fallback_calls.append({"function": "get_current_time", "inputs": {}})
+            return fallback_calls
+        
+        # Random number
+        if "random number" in lower_text:
+            fallback_calls.append({"function": "generate_random_number", "inputs": {"min_val": 1, "max_val": 100}})
+            return fallback_calls
+        
+        # Prime check
+        if "prime" in lower_text:
+            fallback_calls.append({"function": "check_prime", "inputs": {"number": 17}})
+            return fallback_calls
+        
+        # Default invoice operations (only if explicitly mentioned)
+        if "invoice" in lower_text:
             fallback_calls.append({"function": "get_invoices", "inputs": {"month": "March"}})
+            if "summary" in lower_text or "summarize" in lower_text:
+                fallback_calls.append({"function": "summarize_invoices", "inputs": {"invoices": "$output_0.invoices"}})
         
-        if "summar" in response_text.lower():
-            fallback_calls.append({"function": "summarize_invoices", "inputs": {"invoices": "$output_0.invoices"}})
-        
-        if "email" in response_text.lower() or "send" in response_text.lower():
+        # Send email (only if explicitly sending something)
+        if "send email" in lower_text and len(fallback_calls) > 0:
             fallback_calls.append({
                 "function": "send_email", 
                 "inputs": {
-                    "content": "$output_1.summary" if len(fallback_calls) > 0 else "No content available",
+                    "content": f"$output_{len(fallback_calls)-1}",
                     "recipient": "user@example.com",
                     "subject": "Automated Report"
                 }

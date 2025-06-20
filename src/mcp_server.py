@@ -7,7 +7,7 @@ import json
 import logging
 from datetime import datetime
 from typing import Dict, List, Any, Optional
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from .function_library import FunctionLibrary
 from .ollama_interface import OllamaInterface
 from .execution_engine import ExecutionEngine
@@ -28,7 +28,7 @@ class MCPServer:
         self.function_library = FunctionLibrary()
         self.ollama_interface = OllamaInterface(model_name, ollama_host)
         self.execution_engine = ExecutionEngine(self.function_library)
-        self.app = Flask(__name__)
+        self.app = Flask(__name__, template_folder='../templates', static_folder='../static')
         self._setup_routes()
         
         # Test Ollama connection on startup
@@ -39,6 +39,16 @@ class MCPServer:
     
     def _setup_routes(self):
         """Setup Flask routes for the MCP server."""
+        
+        @self.app.route('/', methods=['GET'])
+        def index():
+            """Serve the main chat interface."""
+            return render_template('index.html')
+        
+        @self.app.route('/static/<path:filename>')
+        def static_files(filename):
+            """Serve static files."""
+            return send_from_directory('../static', filename)
         
         @self.app.route('/health', methods=['GET'])
         def health_check():
@@ -124,29 +134,52 @@ class MCPServer:
             return {
                 "success": False,
                 "error": "Could not parse user query into function calls",
-                "user_query": user_query
+                "user_query": user_query,
+                "timestamp": datetime.now().isoformat()
             }
         
         logger.info(f"Generated function calls: {function_calls}")
         
         # Step 2: Validate the plan
-        is_valid, validation_message = self.execution_engine.validate_function_calls(function_calls)
-        if not is_valid:
+        try:
+            is_valid, validation_message = self.execution_engine.validate_function_calls(function_calls)
+            if not is_valid:
+                return {
+                    "success": False,
+                    "error": f"Invalid execution plan: {validation_message}",
+                    "function_calls": function_calls,
+                    "user_query": user_query,
+                    "timestamp": datetime.now().isoformat()
+                }
+        except Exception as e:
             return {
                 "success": False,
-                "error": f"Invalid execution plan: {validation_message}",
+                "error": f"Validation error: {str(e)}",
                 "function_calls": function_calls,
-                "user_query": user_query
+                "user_query": user_query,
+                "timestamp": datetime.now().isoformat()
             }
         
         # Step 3: Execute the plan
-        execution_result = self.execution_engine.execute_pipeline(function_calls)
+        try:
+            execution_result = self.execution_engine.execute_pipeline(function_calls)
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Execution error: {str(e)}",
+                "function_calls": function_calls,
+                "user_query": user_query,
+                "timestamp": datetime.now().isoformat()
+            }
         
         # Step 4: Generate summary
-        summary = self._generate_result_summary(execution_result, user_query)
+        try:
+            summary = self._generate_result_summary(execution_result, user_query)
+        except Exception as e:
+            summary = f"Summary generation failed: {str(e)}"
         
         return {
-            "success": execution_result["success"],
+            "success": execution_result.get("success", False),
             "user_query": user_query,
             "function_calls": function_calls,
             "execution_result": execution_result,
@@ -203,8 +236,7 @@ class MCPServer:
         summary = self._generate_result_summary(execution_result)
         
         return {
-            "success": execution_result["success"],
-            "function_calls": function_calls,
+            "success": execution_result["success"],            "function_calls": function_calls,
             "execution_result": execution_result,
             "summary": summary,
             "timestamp": datetime.now().isoformat()
@@ -213,20 +245,34 @@ class MCPServer:
     def _generate_result_summary(self, execution_result: Dict[str, Any], 
                                 user_query: str = None) -> str:
         """Generate a human-readable summary of the execution result."""
-        if not execution_result["success"]:
+        if not execution_result.get("success", False):
             return f"Execution failed: {execution_result.get('error', 'Unknown error')}"
         
-        # Use AI to generate a natural language summary
-        context = f"User query: {user_query}" if user_query else "Direct function execution"
+        # Get the final output
         final_output = execution_result.get("final_output", {})
         
+        # Create a simple summary without AI if Ollama is unavailable
+        if user_query and "email" in user_query.lower() and "valid" in user_query.lower():
+            # Email validation summary
+            is_valid = final_output.get("is_valid", False)
+            return f"Email validation result: {'Valid' if is_valid else 'Invalid'}"
+        
+        # Try to use AI for summary generation
         try:
+            context = f"User query: {user_query}" if user_query else "Direct function execution"
             ai_summary = self.ollama_interface.generate_summary(final_output, context)
             return ai_summary
         except Exception as e:
             # Fallback to basic summary
             steps_completed = len(execution_result.get("execution_history", []))
-            return f"Successfully completed {steps_completed} steps. Final output contains {len(final_output)} fields."
+            if final_output:
+                key_results = []
+                for key, value in final_output.items():
+                    key_results.append(f"{key}: {value}")
+                result_summary = ", ".join(key_results)
+                return f"Successfully completed {steps_completed} steps. Results: {result_summary}"
+            else:
+                return f"Successfully completed {steps_completed} steps."
     
     def run(self, host: str = "0.0.0.0", port: int = 5000, debug: bool = False):
         """Run the Flask server."""

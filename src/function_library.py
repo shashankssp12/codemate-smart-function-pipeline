@@ -15,6 +15,8 @@ import urllib.parse
 from datetime import datetime, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 from typing import Dict, List, Any, Optional
 import random
 import requests
@@ -54,14 +56,45 @@ class FunctionLibrary:
             inputs={"invoices": "List[Dict]"},
             outputs={"summary": "Dict"}
         )
-        
-        # Email Functions
+          # Email Functions
         self.register_function(
             name="send_email",
             func=self.send_email,
             description="Send an email with given content",
             inputs={"content": "str", "recipient": "str", "subject": "str"},
-            outputs={"status": "str"}
+            outputs={"status": "str", "mode": "str", "recipient": "str", "subject": "str"}
+        )
+        
+        self.register_function(
+            name="send_email_with_attachment",
+            func=self.send_email_with_attachment,
+            description="Send an email with an attachment",
+            inputs={"content": "str", "recipient": "str", "subject": "str", "attachment_path": "str"},
+            outputs={"status": "str", "mode": "str", "recipient": "str", "subject": "str"}
+        )
+        
+        self.register_function(
+            name="send_html_email",
+            func=self.send_html_email,
+            description="Send an HTML formatted email",
+            inputs={"html_content": "str", "recipient": "str", "subject": "str"},
+            outputs={"status": "str", "mode": "str", "recipient": "str", "subject": "str"}
+        )
+        
+        self.register_function(
+            name="send_bulk_email",
+            func=self.send_bulk_email,
+            description="Send email to multiple recipients",
+            inputs={"content": "str", "recipients": "List[str]", "subject": "str"},
+            outputs={"status": "str", "mode": "str", "sent_count": "int", "failed_count": "int"}
+        )
+        
+        self.register_function(
+            name="check_email_config",
+            func=self.check_email_config,
+            description="Check if email configuration is properly set up",
+            inputs={},
+            outputs={"configured": "bool", "smtp_server": "str", "username": "str"}
         )
         
         # Data Processing Functions
@@ -573,18 +606,360 @@ class FunctionLibrary:
             "total_amount": total_amount,
             "total_count": total_count,
             "status_breakdown": status_counts,
-            "average_amount": total_amount / total_count if total_count > 0 else 0
-        }
+            "average_amount": total_amount / total_count if total_count > 0 else 0        }
         return {"summary": summary}
     
     def send_email(self, content: str, recipient: str, subject: str = "Automated Report") -> Dict[str, str]:
-        """Mock function to send an email."""
-        # In a real implementation, this would actually send an email
-        print(f"Mock Email Sent:")
-        print(f"To: {recipient}")
-        print(f"Subject: {subject}")
-        print(f"Content: {content}")
-        return {"status": "Email sent successfully"}
+        """Send an email using SMTP configuration."""
+        try:
+            # Get email configuration from environment variables
+            smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+            smtp_port = int(os.getenv('SMTP_PORT', '587'))
+            email_username = os.getenv('EMAIL_USERNAME', '')
+            email_password = os.getenv('EMAIL_PASSWORD', '')
+            
+            # If email credentials are not configured, fall back to mock mode
+            if not email_username or not email_password:
+                print(f"📧 Mock Email (No SMTP configured):")
+                print(f"   From: {email_username or 'system@example.com'}")
+                print(f"   To: {recipient}")
+                print(f"   Subject: {subject}")
+                print(f"   Content: {content}")
+                return {
+                    "status": "Email sent successfully (mock mode)",
+                    "mode": "mock",
+                    "recipient": recipient,
+                    "subject": subject
+                }
+            
+            # Create message
+            msg = MIMEMultipart()
+            msg['From'] = email_username
+            msg['To'] = recipient
+            msg['Subject'] = subject
+            
+            # Add content to email
+            body = content
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # Connect to server and send email
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            server.starttls()  # Enable security
+            server.login(email_username, email_password)
+            
+            # Send email
+            text = msg.as_string()
+            server.sendmail(email_username, recipient, text)
+            server.quit()
+            
+            print(f"✅ Email sent successfully to {recipient}")
+            
+            return {
+                "status": "Email sent successfully",
+                "mode": "smtp",
+                "recipient": recipient,
+                "subject": subject,
+                "smtp_server": smtp_server
+            }
+            
+        except smtplib.SMTPAuthenticationError:
+            error_msg = "SMTP Authentication failed. Please check email credentials."
+            print(f"❌ {error_msg}")
+            return {
+                "status": f"Failed: {error_msg}",
+                "mode": "smtp_error",
+                "recipient": recipient,
+                "subject": subject
+            }
+            
+        except smtplib.SMTPRecipientsRefused:
+            error_msg = f"Recipient {recipient} was refused by the server."
+            print(f"❌ {error_msg}")
+            return {
+                "status": f"Failed: {error_msg}",
+                "mode": "smtp_error", 
+                "recipient": recipient,
+                "subject": subject
+            }
+            
+        except smtplib.SMTPException as e:
+            error_msg = f"SMTP error occurred: {str(e)}"
+            print(f"❌ {error_msg}")
+            return {
+                "status": f"Failed: {error_msg}",
+                "mode": "smtp_error",
+                "recipient": recipient,
+                "subject": subject
+            }
+            
+        except Exception as e:
+            error_msg = f"Unexpected error: {str(e)}"
+            print(f"❌ {error_msg}")
+            return {
+                "status": f"Failed: {error_msg}",
+                "mode": "error",
+                "recipient": recipient,
+                "subject": subject
+            }
+    
+    def send_email_with_attachment(self, content: str, recipient: str, subject: str, attachment_path: str) -> Dict[str, str]:
+        """Send an email with an attachment."""
+        try:
+            # Get email configuration from environment variables
+            smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+            smtp_port = int(os.getenv('SMTP_PORT', '587'))
+            email_username = os.getenv('EMAIL_USERNAME', '')
+            email_password = os.getenv('EMAIL_PASSWORD', '')
+            
+            # If email credentials are not configured, fall back to mock mode
+            if not email_username or not email_password:
+                print(f"📧 Mock Email with Attachment (No SMTP configured):")
+                print(f"   From: {email_username or 'system@example.com'}")
+                print(f"   To: {recipient}")
+                print(f"   Subject: {subject}")
+                print(f"   Content: {content}")
+                print(f"   Attachment: {attachment_path}")
+                return {
+                    "status": "Email with attachment sent successfully (mock mode)",
+                    "mode": "mock",
+                    "recipient": recipient,
+                    "subject": subject
+                }
+            
+            # Check if attachment file exists
+            if not os.path.exists(attachment_path):
+                error_msg = f"Attachment file not found: {attachment_path}"
+                print(f"❌ {error_msg}")
+                return {
+                    "status": f"Failed: {error_msg}",
+                    "mode": "file_error",
+                    "recipient": recipient,
+                    "subject": subject
+                }
+            
+            # Create message
+            msg = MIMEMultipart()
+            msg['From'] = email_username
+            msg['To'] = recipient
+            msg['Subject'] = subject
+            
+            # Add content to email
+            msg.attach(MIMEText(content, 'plain'))
+            
+            # Add attachment
+            with open(attachment_path, "rb") as attachment:
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(attachment.read())
+            
+            encoders.encode_base64(part)
+            part.add_header(
+                'Content-Disposition',
+                f'attachment; filename= {os.path.basename(attachment_path)}'
+            )
+            msg.attach(part)
+            
+            # Connect to server and send email
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            server.starttls()
+            server.login(email_username, email_password)
+            
+            # Send email
+            text = msg.as_string()
+            server.sendmail(email_username, recipient, text)
+            server.quit()
+            
+            print(f"✅ Email with attachment sent successfully to {recipient}")
+            
+            return {
+                "status": "Email with attachment sent successfully",
+                "mode": "smtp",
+                "recipient": recipient,
+                "subject": subject,
+                "attachment": os.path.basename(attachment_path)
+            }
+            
+        except Exception as e:
+            error_msg = f"Error sending email with attachment: {str(e)}"
+            print(f"❌ {error_msg}")
+            return {
+                "status": f"Failed: {error_msg}",
+                "mode": "error",
+                "recipient": recipient,
+                "subject": subject
+            }
+    
+    def send_html_email(self, html_content: str, recipient: str, subject: str) -> Dict[str, str]:
+        """Send an HTML formatted email."""
+        try:
+            # Get email configuration from environment variables
+            smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+            smtp_port = int(os.getenv('SMTP_PORT', '587'))
+            email_username = os.getenv('EMAIL_USERNAME', '')
+            email_password = os.getenv('EMAIL_PASSWORD', '')
+            
+            # If email credentials are not configured, fall back to mock mode
+            if not email_username or not email_password:
+                print(f"📧 Mock HTML Email (No SMTP configured):")
+                print(f"   From: {email_username or 'system@example.com'}")
+                print(f"   To: {recipient}")
+                print(f"   Subject: {subject}")
+                print(f"   HTML Content: {html_content[:100]}...")
+                return {
+                    "status": "HTML email sent successfully (mock mode)",
+                    "mode": "mock",
+                    "recipient": recipient,
+                    "subject": subject
+                }
+            
+            # Create message
+            msg = MIMEMultipart("alternative")
+            msg['From'] = email_username
+            msg['To'] = recipient
+            msg['Subject'] = subject
+            
+            # Add HTML content to email
+            html_part = MIMEText(html_content, 'html')
+            msg.attach(html_part)
+            
+            # Connect to server and send email
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            server.starttls()
+            server.login(email_username, email_password)
+            
+            # Send email
+            text = msg.as_string()
+            server.sendmail(email_username, recipient, text)
+            server.quit()
+            
+            print(f"✅ HTML email sent successfully to {recipient}")
+            
+            return {
+                "status": "HTML email sent successfully",
+                "mode": "smtp",
+                "recipient": recipient,
+                "subject": subject
+            }
+            
+        except Exception as e:
+            error_msg = f"Error sending HTML email: {str(e)}"
+            print(f"❌ {error_msg}")
+            return {
+                "status": f"Failed: {error_msg}",
+                "mode": "error",
+                "recipient": recipient,
+                "subject": subject
+            }
+    
+    def send_bulk_email(self, content: str, recipients: List[str], subject: str) -> Dict[str, Any]:
+        """Send email to multiple recipients."""
+        try:
+            # Get email configuration from environment variables
+            smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+            smtp_port = int(os.getenv('SMTP_PORT', '587'))
+            email_username = os.getenv('EMAIL_USERNAME', '')
+            email_password = os.getenv('EMAIL_PASSWORD', '')
+            
+            sent_count = 0
+            failed_count = 0
+            failed_recipients = []
+            
+            # If email credentials are not configured, fall back to mock mode
+            if not email_username or not email_password:
+                print(f"📧 Mock Bulk Email (No SMTP configured):")
+                print(f"   From: {email_username or 'system@example.com'}")
+                print(f"   To: {len(recipients)} recipients")
+                print(f"   Subject: {subject}")
+                print(f"   Content: {content}")
+                return {
+                    "status": "Bulk email sent successfully (mock mode)",
+                    "mode": "mock",
+                    "sent_count": len(recipients),
+                    "failed_count": 0
+                }
+            
+            # Connect to server
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            server.starttls()
+            server.login(email_username, email_password)
+            
+            for recipient in recipients:
+                try:
+                    # Create message for each recipient
+                    msg = MIMEMultipart()
+                    msg['From'] = email_username
+                    msg['To'] = recipient
+                    msg['Subject'] = subject
+                    
+                    # Add content to email
+                    msg.attach(MIMEText(content, 'plain'))
+                    
+                    # Send email
+                    text = msg.as_string()
+                    server.sendmail(email_username, recipient, text)
+                    sent_count += 1
+                    print(f"✅ Email sent to {recipient}")
+                    
+                except Exception as e:
+                    failed_count += 1
+                    failed_recipients.append(recipient)
+                    print(f"❌ Failed to send to {recipient}: {str(e)}")
+            
+            server.quit()
+            
+            result = {
+                "status": f"Bulk email completed: {sent_count} sent, {failed_count} failed",
+                "mode": "smtp",
+                "sent_count": sent_count,
+                "failed_count": failed_count
+            }
+            
+            if failed_recipients:
+                result["failed_recipients"] = failed_recipients
+            
+            return result
+            
+        except Exception as e:
+            error_msg = f"Error in bulk email sending: {str(e)}"
+            print(f"❌ {error_msg}")
+            return {
+                "status": f"Failed: {error_msg}",
+                "mode": "error",
+                "sent_count": sent_count,
+                "failed_count": len(recipients) - sent_count
+            }
+    
+    def check_email_config(self) -> Dict[str, Any]:
+        """Check if email configuration is properly set up."""
+        smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+        smtp_port = int(os.getenv('SMTP_PORT', '587'))
+        email_username = os.getenv('EMAIL_USERNAME', '')
+        email_password = os.getenv('EMAIL_PASSWORD', '')
+        
+        configured = bool(email_username and email_password)
+        
+        result = {
+            "configured": configured,
+            "smtp_server": smtp_server,
+            "smtp_port": smtp_port,
+            "username": email_username if email_username else "Not configured"
+        }
+        
+        if configured:
+            try:
+                # Test connection
+                server = smtplib.SMTP(smtp_server, smtp_port)
+                server.starttls()
+                server.login(email_username, email_password)
+                server.quit()
+                result["connection_test"] = "Success"
+                result["status"] = "Email configuration is working properly"
+            except Exception as e:
+                result["connection_test"] = f"Failed: {str(e)}"
+                result["status"] = "Email configuration error"
+        else:
+            result["status"] = "Email not configured - set EMAIL_USERNAME and EMAIL_PASSWORD environment variables"
+        
+        return result
     
     def calculate_total(self, items: List[Dict], field: str) -> Dict[str, float]:
         """Calculate total amount from a list of items."""
