@@ -1,0 +1,29 @@
+{
+  "paid": [
+    {
+      "id": "INV-001",
+      "date": "2024-March-01",
+      "amount": 1500.0,
+      "client": "ABC Corp",
+      "status": "paid"
+    }
+  ],
+  "pending": [
+    {
+      "id": "INV-002",
+      "date": "2024-March-15",
+      "amount": 2300.0,
+      "client": "XYZ Ltd",
+      "status": "pending"
+    }
+  ],
+  "overdue": [
+    {
+      "id": "INV-004",
+      "date": "2024-March-28",
+      "amount": 3200.0,
+      "client": "Global Inc",
+      "status": "overdue"
+    }
+  ]
+}
