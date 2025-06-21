@@ -161,3 +161,7 @@ Execution:
 | `DEBUG_MODE`   | Enable debug mode   | `false`                  |
 
 
+## Long Query: 
+```
+Retrieve all invoices for March, summarize them, and send the summary to shashank.pandey_cs22@gla.ac.in email.
+```
